@@ -2,11 +2,21 @@
 
 An interactive demonstration showing how quickly simple passwords can be cracked using dictionary attacks. Perfect for security awareness training and presentations.
 
+<img width="1920" height="929" alt="Demo" src="https://github.com/user-attachments/assets/24941820-0f17-4c91-86bf-7cefb27969b9" />
+
 ## 🎯 What It Does
 
 1. **User Portal** (`index.html`) — Participants create an "account" with a simple password
 2. **Hacker Terminal** (`terminal.html`) — Demonstrates cracking the password in real-time
 3. **Backend API** (`api/store.php`) — Stores hashed passwords so two devices can communicate
+
+## Demo Video
+
+https://github.com/user-attachments/assets/03b3921f-8f05-49f1-926b-8a5fdb7df5b4
+
+## Front-End Account Creation Screen
+
+<img width="1920" height="929" alt="Create-Password" src="https://github.com/user-attachments/assets/f8b62e58-0e51-4c44-a230-87e083c2a5c3" />
 
 ## 📁 Folder Structure
 
