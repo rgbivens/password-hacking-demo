@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Runtime data - this file is created by the server
+api/hashes.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archives
+*.zip
+
+# Logs
+*.log

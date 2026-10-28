@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[ BREACH TERMINAL ]</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root {
+            --neon-green: #00ff41;
+            --neon-pink: #ff0080;
+            --neon-cyan: #00d4ff;
+            --neon-red: #ff3333;
+            --neon-yellow: #ffdd00;
+            --dark-bg: #0a0a0f;
+            --panel-bg: rgba(10, 10, 20, 0.95);
+            --grid-color: rgba(0, 255, 65, 0.25);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background: var(--dark-bg);
+            min-height: 100vh;
+            color: var(--neon-green);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated grid background */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: gridPulse 4s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 0.9; }
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.15) 2px,
+                rgba(0, 0, 0, 0.15) 4px
+            );
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .warning-banner {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid var(--neon-red);
+            padding: 10px 20px;
+            display: inline-block;
+            margin-bottom: 20px;
+            animation: warningPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes warningPulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 25px rgba(255, 0, 0, 0.6); }
+        }
+
+        .warning-banner span {
+            color: var(--neon-red);
+            font-size: 0.85rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            color: var(--neon-green);
+            text-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 20px rgba(0, 255, 65, 0.5), 0 0 40px rgba(0, 255, 65, 0.3); }
+            to { text-shadow: 0 0 30px rgba(0, 212, 255, 0.8), 0 0 60px rgba(0, 212, 255, 0.4); }
+        }
+
+        .panels {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1000px) {
+            .panels {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--neon-green);
+            border-radius: 4px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '>';
+            color: var(--neon-pink);
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Target Info Panel */
+        .target-panel {
+            border-color: var(--neon-red);
+        }
+
+        .target-panel::before {
+            background: linear-gradient(90deg, var(--neon-red), var(--neon-pink));
+        }
+
+        .target-info {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 0, 128, 0.3);
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .target-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .target-row:last-child {
+            border-bottom: none;
+        }
+
+        .target-label {
+            color: var(--neon-cyan);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .target-value {
+            color: var(--neon-green);
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .target-value.hash {
+            font-size: 0.7rem;
+            color: var(--neon-pink);
+        }
+
+        .target-value.table-num {
+            font-size: 1.5rem;
+            color: var(--neon-pink);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px 20px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .btn-fetch {
+            background: linear-gradient(135deg, var(--neon-cyan), #0088cc);
+            color: var(--dark-bg);
+        }
+
+        .btn-attack {
+            background: linear-gradient(135deg, var(--neon-red), var(--neon-pink));
+            color: white;
+        }
+
+        .btn-stop {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Main Attack Panel */
+        .attack-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .current-attempt-display {
+            background: rgba(255, 0, 128, 0.1);
+            border: 2px solid var(--neon-pink);
+            border-radius: 4px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .current-attempt-label {
+            font-size: 0.8rem;
+            color: var(--neon-pink);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .current-attempt-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            color: var(--neon-green);
+            letter-spacing: 8px;
+            text-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 800px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            border-radius: 2px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        .stat-value.cracked {
+            color: var(--neon-pink);
+            animation: crackedPulse 0.5s ease-in-out infinite;
+        }
+
+        .stat-value.failed {
+            color: var(--neon-yellow);
+        }
+
+        @keyframes crackedPulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(255, 0, 128, 0.5); }
+            50% { text-shadow: 0 0 30px rgba(255, 0, 128, 1); }
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--neon-cyan);
+            margin-top: 5px;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            height: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-green);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
+            width: 0%;
+            transition: width 0.1s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.1) 10px,
+                rgba(255, 255, 255, 0.1) 20px
+            );
+            animation: moveStripes 1s linear infinite;
+        }
+
+        @keyframes moveStripes {
+            from { transform: translateX(0); }
+            to { transform: translateX(20px); }
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            z-index: 1;
+        }
+
+        /* Terminal */
+        .terminal {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--neon-green);
+            border-radius: 2px;
+            padding: 15px;
+            flex: 1;
+            min-height: 250px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .terminal::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .terminal::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .terminal::-webkit-scrollbar-thumb {
+            background: var(--neon-green);
+            border-radius: 3px;
+        }
+
+        .terminal-line {
+            margin-bottom: 3px;
+            animation: fadeIn 0.1s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .terminal-line.success {
+            color: var(--neon-pink);
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .terminal-line.info {
+            color: var(--neon-cyan);
+        }
+
+        .terminal-line.warn {
+            color: #ffaa00;
+        }
+
+        .terminal-line.attempt {
+            color: rgba(0, 255, 65, 0.5);
+        }
+
+        .terminal-line.secure {
+            color: var(--neon-yellow);
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        /* Result Banner - Success */
+        .result-banner {
+            display: none;
+            background: linear-gradient(135deg, var(--neon-pink), #ff3333);
+            padding: 9px 251px;
+            border-radius: 4px;
+            text-align: center;
+            margin: 20px 0;
+            animation: bannerPulse 1s ease-in-out infinite;
+            position: absolute;
+            top: 42px;
+            left: 25px;
+        }
+
+        .result-banner.show {
+            display: block;
+        }
+
+        @keyframes bannerPulse {
+            0%, 100% { box-shadow: 0 0 30px rgba(255, 0, 128, 0.5); }
+            50% { box-shadow: 0 0 60px rgba(255, 0, 128, 0.8); }
+        }
+
+        .result-banner h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 15px;
+        }
+
+        .cracked-password {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--dark-bg);
+            letter-spacing: 8px;
+            text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .crack-stats {
+            margin-top: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+        }
+
+        /* Result Banner - Failed (Strong Password) */
+        .failed-banner {
+            display: none;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            padding: 27px 199px;
+            border-radius: 4px;
+            text-align: center;
+            margin: 20px 0;
+            animation: securePulse 1s ease-in-out infinite;
+            position: absolute;
+            top: 42px;
+            left: 25px;
+        }
+
+        .failed-banner.show {
+            display: block;
+        }
+
+        @keyframes securePulse {
+            0%, 100% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
+            50% { box-shadow: 0 0 60px rgba(34, 197, 94, 0.8); }
+        }
+
+        .failed-banner h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 15px;
+        }
+
+        .failed-banner .shield-icon {
+            display: none;
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .failed-banner p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        /* Server URL input */
+        .server-config {
+            margin-bottom: 15px;
+        }
+
+        .server-config label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .server-config input, .server-config select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-green);
+            border-radius: 2px;
+            color: var(--neon-green);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .server-config select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2300ff41'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            padding-right: 35px;
+        }
+
+        .server-config input:focus, .server-config select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        }
+
+        /* No target state */
+        .no-target {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--neon-cyan);
+            opacity: 0.7;
+        }
+
+        .no-target-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="scanlines"></div>
+
+    <div class="container">
+        <header>
+
+            <h1>Breach Terminal</h1>
+        </header>
+
+        <div class="panels">
+            <!-- Left Panel: Target & Controls -->
+            <div class="panel target-panel">
+                <h2 class="panel-title">Target Acquired</h2>
+
+                <div class="server-config">
+                    <label>Server URL</label>
+                    <input type="text" id="serverUrl" placeholder="https://your-server.com" value="">
+                </div>
+
+                <div class="server-config">
+                    <label>Table Number</label>
+                    <select id="tableSelect">
+                        <option value="">Select table...</option>
+                    </select>
+                </div>
+
+                <div class="server-config">
+                    <label>Attack Speed (attempts/sec)</label>
+                    <input type="number" id="speedInput" placeholder="10000" value="10000" min="100" max="10000">
+                </div>
+
+                <button class="btn btn-fetch" id="fetchBtn" onclick="fetchTarget()">
+                    📡 Intercept Hash
+                </button>
+
+                <div class="target-info" id="targetInfo">
+                    <div class="no-target" id="noTarget">
+                        <div class="no-target-icon">🎯</div>
+                        <p>No target acquired</p>
+                        <p style="font-size: 0.75rem; margin-top: 10px;">Select a table and click "Intercept Hash"</p>
+                    </div>
+                    <div id="targetDetails" style="display: none;">
+                        <div class="target-row">
+                            <span class="target-label">Table Number</span>
+                            <span class="target-value table-num" id="targetTableNumber">—</span>
+                        </div>
+                        <div class="target-row">
+                            <span class="target-label">Hash Type</span>
+                            <span class="target-value">MD5</span>
+                        </div>
+                        <div class="target-row">
+                            <span class="target-label">Hash</span>
+                            <span class="target-value hash" id="targetHash">—</span>
+                        </div>
+                        <div class="target-row">
+                            <span class="target-label">Captured</span>
+                            <span class="target-value" id="targetTime">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-attack" id="attackBtn" onclick="startAttack()" disabled>
+                    ⚡ Launch Attack
+                </button>
+                <button class="btn btn-stop" id="stopBtn" onclick="stopAttack()" disabled>
+                    ■ Abort
+                </button>
+            </div>
+
+            <!-- Right Panel: Attack Display -->
+            <div class="panel attack-panel">
+                <h2 class="panel-title">Dictionary Attack</h2>
+
+                <div class="current-attempt-display">
+                    <div class="current-attempt-label">Testing Password</div>
+                    <div class="current-attempt-value" id="currentAttempt">—</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="attemptCount">0</div>
+                        <div class="stat-label">Attempts</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="elapsedTime">0.00s</div>
+                        <div class="stat-label">Time</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="attemptsPerSec">0</div>
+                        <div class="stat-label">Attempts/Sec</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statusText">IDLE</div>
+                        <div class="stat-label">Status</div>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                    <div class="progress-text" id="progressText">0%</div>
+                </div>
+
+                <!-- Success Banner -->
+                <div class="result-banner" id="resultBanner">
+                    <h2>🔓 Access Granted</h2>
+                    <div class="cracked-password" id="crackedPassword"></div>
+                    <div class="crack-stats">
+                        Cracked in <span id="crackTime"></span> with <span id="crackAttempts"></span> attempts
+                    </div>
+                </div>
+
+                <!-- Failed Banner (Strong Password) -->
+                <div class="failed-banner" id="failedBanner">
+                    <div class="shield-icon">🛡️</div>
+                    <h2>Attack Failed!</h2>
+                    <p>Password was NOT in our dictionary of <span id="failedWordlistSize"></span> common passwords.</p>
+                    <p style="margin-top: 15px; font-weight: bold;">This password is STRONG! 💪</p>
+                </div>
+
+                <div class="terminal" id="terminal">
+                    <div class="terminal-line info">[SYSTEM] Breach Terminal v2.0 initialized</div>
+                    <div class="terminal-line info">[SYSTEM] Dictionary: 50,000+ common passwords</div>
+                    <div class="terminal-line info">[SYSTEM] Attack modes: dictionary, hybrid, mutations</div>
+                    <div class="terminal-line">Awaiting target selection...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Common passwords dictionary
+        const commonPasswords = [
+            'password', 'admin', 'letmein', 'welcome', 'monkey', 'dragon',
+            'master', 'qwerty', 'login', 'princess', 'sunshine', 'shadow',
+            'superman', 'michael', 'jennifer', 'hunter', 'thomas', 'charlie',
+            'baseball', 'football', 'soccer', 'hockey', 'batman', 'trustno',
+            'hello', 'secret', 'love', 'summer', 'winter', 'spring', 'fall',
+            'orange', 'apple', 'banana', 'cheese', 'pizza', 'cookie', 'candy',
+            'flower', 'garden', 'ocean', 'river', 'mountain', 'forest',
+            'test', 'demo', 'user', 'guest', 'temp', 'pass', 'word',
+            'purple', 'blue', 'green', 'red', 'yellow', 'black', 'white',
+            'angel', 'devil', 'killer', 'ninja', 'pirate', 'wizard', 'magic',
+            'coffee', 'fisher', 'jesus', 'hebrews', 'bible', 'psalm',
+            'january', 'february', 'march', 'april', 'may', 'june', 'july',
+            'august', 'september', 'october', 'november', 'december',
+            'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+            'computer', 'internet', 'gaming', 'music', 'movie', 'video',
+            'iloveyou', 'letmein', 'whatever', 'freedom', 'money', 'master',
+            'diamond', 'silver', 'gold', 'bronze', 'platinum', 'crystal',
+            'tiger', 'lion', 'eagle', 'shark', 'wolf', 'bear', 'dragon',
+            'star', 'moon', 'sun', 'sky', 'cloud', 'rain', 'snow',
+            'robert', 'james', 'john', 'david', 'richard', 'joseph', 'daniel',
+            'ashley', 'jessica', 'amanda', 'sarah', 'michelle', 'emily', 'nicole'
+        ];
+
+        const numberSuffixes = [
+            '', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            '11', '12', '13', '21', '22', '23', '69', '77', '99',
+            '01', '02', '07', '10', '11', '12', '13', '14', '15',
+            '123', '1234', '12345', '321', '111', '000', '007', '420', '666', '777', '911',
+            '2020', '2021', '2022', '2023', '2024', '2025', '2026',
+            '!', '@', '#', '!@#', '!!!', '!1', '@1', '#1'
+        ];
+
+        const MAX_TABLES = 15;
+        const DEMO_TABLE = 15; // Table 50 always runs full wordlist for "strong password" demo
+
+        // Generate case variations for a word
+        function generateCaseVariations(word) {
+            const variations = [];
+            
+            // 1. lowercase: password
+            variations.push(word.toLowerCase());
+            
+            // 2. UPPERCASE: PASSWORD
+            variations.push(word.toUpperCase());
+            
+            // 3. Capitalized: Password
+            variations.push(word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+            
+            // 4. aLtErNaTiNg (starting lowercase): pAsSwOrD
+            let altLower = '';
+            for (let i = 0; i < word.length; i++) {
+                altLower += i % 2 === 0 ? word[i].toLowerCase() : word[i].toUpperCase();
+            }
+            variations.push(altLower);
+            
+            // 5. AlTeRnAtInG (starting uppercase): PaSsWoRd
+            let altUpper = '';
+            for (let i = 0; i < word.length; i++) {
+                altUpper += i % 2 === 0 ? word[i].toUpperCase() : word[i].toLowerCase();
+            }
+            variations.push(altUpper);
+            
+            // 6. Last letter capitalized: passworD
+            if (word.length > 1) {
+                variations.push(word.slice(0, -1).toLowerCase() + word.slice(-1).toUpperCase());
+            }
+            
+            return [...new Set(variations)]; // Remove duplicates
+        }
+
+        function generateWordlist() {
+            const wordlist = [];
+            const seen = new Set(); // Avoid duplicates
+            
+            function addIfNew(pwd) {
+                if (!seen.has(pwd)) {
+                    seen.add(pwd);
+                    wordlist.push(pwd);
+                }
+            }
+            
+            // Add common passwords with all variations
+            for (const word of commonPasswords) {
+                const caseVariations = generateCaseVariations(word);
+                
+                for (const variant of caseVariations) {
+                    // Word only (no number)
+                    addIfNew(variant);
+                    
+                    for (const num of numberSuffixes) {
+                        if (num === '') continue; // Already added word-only above
+                        
+                        // Number AFTER word: password123
+                        addIfNew(variant + num);
+                        
+                        // Number BEFORE word: 123password
+                        addIfNew(num + variant);
+                    }
+                }
+            }
+            
+            // Add pure numbers
+            for (let i = 0; i <= 9999; i++) {
+                addIfNew(String(i));
+            }
+            
+            // Add padded numbers
+            for (let i = 0; i <= 999; i++) {
+                addIfNew(String(i).padStart(4, '0'));
+            }
+            
+            // Shuffle array for realism
+            for (let i = wordlist.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [wordlist[i], wordlist[j]] = [wordlist[j], wordlist[i]];
+            }
+            
+            return wordlist;
+        }
+
+        let targetHash = '';
+        let targetTableNumber = '';
+        let isRunning = false;
+        let startTime = 0;
+        let attemptCount = 0;
+        let wordlist = [];
+        let attackInterval = null;
+        let currentIndex = 0;
+
+        // Populate table dropdown
+        function populateTableDropdown() {
+            const select = document.getElementById('tableSelect');
+            for (let i = 1; i <= MAX_TABLES; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                if (i === DEMO_TABLE) {
+                    option.textContent = `Table ${i} (Strong Password Demo)`;
+                } else {
+                    option.textContent = `Table ${i}`;
+                }
+                select.appendChild(option);
+            }
+        }
+
+        populateTableDropdown();
+
+        // Auto-set server URL from current location
+        document.getElementById('serverUrl').value = window.location.origin;
+
+        async function fetchTarget() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            const tableNumber = document.getElementById('tableSelect').value;
+            const fetchBtn = document.getElementById('fetchBtn');
+            
+            if (!tableNumber) {
+                alert('Please select a table number first');
+                return;
+            }
+            
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = '📡 Intercepting...';
+            
+            addTerminalLine(`[NETWORK] Targeting Table ${tableNumber}...`, 'info');
+            
+            // Simulate network delay
+            await new Promise(r => setTimeout(r, 800));
+            
+            let data = null;
+            
+            // Try to fetch from server
+            try {
+                const response = await fetch(serverUrl + '/api/store.php?table=' + tableNumber);
+                if (response.ok) {
+                    data = await response.json();
+                    if (data && data.hash) {
+                        addTerminalLine('[NETWORK] Server breach successful!', 'success');
+                    }
+                }
+            } catch (e) {
+                addTerminalLine('[NETWORK] Server unreachable, checking local storage...', 'warn');
+            }
+            
+            // Fallback to localStorage
+            if (!data || !data.hash) {
+                const localData = JSON.parse(localStorage.getItem('demo_hashes') || '{}');
+                if (localData[tableNumber]) {
+                    data = localData[tableNumber];
+                    addTerminalLine('[LOCAL] Found cached credentials!', 'info');
+                }
+            }
+            
+            if (data && data.hash) {
+                targetHash = data.hash;
+                targetTableNumber = tableNumber;
+                
+                document.getElementById('noTarget').style.display = 'none';
+                document.getElementById('targetDetails').style.display = 'block';
+                document.getElementById('targetTableNumber').textContent = tableNumber;
+                document.getElementById('targetHash').textContent = targetHash;
+                document.getElementById('targetTime').textContent = new Date().toLocaleTimeString();
+                document.getElementById('attackBtn').disabled = false;
+                
+                // Hide any previous result banners
+                document.getElementById('resultBanner').classList.remove('show');
+                document.getElementById('failedBanner').classList.remove('show');
+                
+                addTerminalLine(`[TARGET] Table: ${tableNumber}`, 'info');
+                addTerminalLine(`[TARGET] Hash: ${targetHash}`, 'info');
+                addTerminalLine('[READY] Target acquired. Ready to attack.', 'success');
+            } else {
+                addTerminalLine(`[ERROR] No password found for Table ${tableNumber}. Have them create an account first.`, 'warn');
+            }
+            
+            fetchBtn.disabled = false;
+            fetchBtn.textContent = '📡 Intercept Hash';
+        }
+
+        function startAttack() {
+            if (!targetHash) {
+                alert('No target hash. Fetch a target first.');
+                return;
+            }
+            
+            isRunning = true;
+            startTime = Date.now();
+            attemptCount = 0;
+            
+            // Generate wordlist
+            wordlist = generateWordlist();
+            
+            document.getElementById('attackBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('fetchBtn').disabled = true;
+            document.getElementById('statusText').textContent = 'RUNNING';
+            document.getElementById('statusText').classList.remove('cracked', 'failed');
+            document.getElementById('resultBanner').classList.remove('show');
+            document.getElementById('failedBanner').classList.remove('show');
+            
+            addTerminalLine('', '');
+            addTerminalLine('═══════════════════════════════════════', 'info');
+            addTerminalLine(`[ATTACK] Targeting Table ${targetTableNumber}...`, 'info');
+            addTerminalLine(`[ATTACK] Wordlist: ${wordlist.length.toLocaleString()} candidates`, 'info');
+            if (parseInt(targetTableNumber) === DEMO_TABLE) {
+                addTerminalLine(`[DEMO] Table ${DEMO_TABLE} - Full wordlist demo mode`, 'warn');
+            }
+            addTerminalLine('═══════════════════════════════════════', 'info');
+            
+            runAttack();
+        }
+
+        function stopAttack() {
+            isRunning = false;
+            if (attackInterval) {
+                clearInterval(attackInterval);
+                attackInterval = null;
+            }
+            document.getElementById('attackBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('fetchBtn').disabled = false;
+            document.getElementById('statusText').textContent = 'ABORTED';
+            
+            addTerminalLine('[ATTACK] Attack aborted by operator', 'warn');
+        }
+
+        function runAttack() {
+            const speed = parseInt(document.getElementById('speedInput').value) || 60;
+            const batchSize = Math.max(1, Math.ceil(speed / 30)); // Scale batch size with speed
+            const intervalMs = Math.max(10, Math.floor(1000 / (speed / batchSize))); // Minimum 10ms interval
+            
+            currentIndex = 0;
+            
+            addTerminalLine(`[CONFIG] Speed: ${speed} attempts/sec, Batch: ${batchSize}, Interval: ${intervalMs}ms`, 'info');
+            
+            // Clear any existing interval
+            if (attackInterval) {
+                clearInterval(attackInterval);
+            }
+            
+            attackInterval = setInterval(function() {
+                if (!isRunning) {
+                    clearInterval(attackInterval);
+                    attackInterval = null;
+                    return;
+                }
+                
+                // Check if this is the demo table (Table 50) - always run full wordlist
+                const isDemoTable = parseInt(targetTableNumber) === DEMO_TABLE;
+                
+                // Process a batch of passwords
+                for (let b = 0; b < batchSize && currentIndex < wordlist.length; b++) {
+                    const attempt = wordlist[currentIndex];
+                    attemptCount++;
+                    currentIndex++;
+                    
+                    const attemptHash = CryptoJS.MD5(attempt).toString();
+                    
+                    // Update display with current attempt
+                    document.getElementById('currentAttempt').textContent = attempt;
+                    
+                    // Check if cracked (skip check for demo table - always run full wordlist)
+                    if (!isDemoTable && attemptHash === targetHash) {
+                        clearInterval(attackInterval);
+                        attackInterval = null;
+                        crackSuccess(attempt);
+                        return;
+                    }
+                    
+                    // Terminal output - scale with speed so it doesn't flood
+                    const logInterval = Math.max(50, Math.floor(speed / 2));
+                    if (attemptCount % logInterval === 0) {
+                        addTerminalLine(`[TRYING] ${attempt} → ${attemptHash.substring(0, 12)}...`, 'attempt');
+                    }
+                }
+                
+                // Update stats
+                const elapsed = (Date.now() - startTime) / 1000;
+                const progress = (currentIndex / wordlist.length) * 100;
+                
+                document.getElementById('attemptCount').textContent = attemptCount.toLocaleString();
+                document.getElementById('elapsedTime').textContent = elapsed.toFixed(2) + 's';
+                document.getElementById('attemptsPerSec').textContent = Math.round(attemptCount / Math.max(0.1, elapsed)).toLocaleString();
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressText').textContent = progress.toFixed(1) + '%';
+                
+                // Check if exhausted wordlist - PASSWORD NOT FOUND (STRONG!)
+                if (currentIndex >= wordlist.length) {
+                    clearInterval(attackInterval);
+                    attackInterval = null;
+                    crackFailed();
+                }
+                
+            }, intervalMs);
+        }
+
+        function crackSuccess(password) {
+            isRunning = false;
+            const elapsed = (Date.now() - startTime) / 1000;
+            
+            document.getElementById('statusText').textContent = 'CRACKED';
+            document.getElementById('statusText').classList.add('cracked');
+            document.getElementById('statusText').classList.remove('failed');
+            document.getElementById('currentAttempt').textContent = password;
+            document.getElementById('progressFill').style.width = '100%';
+            document.getElementById('progressText').textContent = 'BREACH';
+            
+            // Show success result banner
+            document.getElementById('crackedPassword').textContent = password;
+            document.getElementById('crackTime').textContent = elapsed.toFixed(2) + ' seconds';
+            document.getElementById('crackAttempts').textContent = attemptCount.toLocaleString();
+            document.getElementById('resultBanner').classList.add('show');
+            document.getElementById('failedBanner').classList.remove('show');
+            
+            addTerminalLine('', '');
+            addTerminalLine('╔══════════════════════════════════════╗', 'success');
+            addTerminalLine('║     🔓 PASSWORD CRACKED! 🔓          ║', 'success');
+            addTerminalLine('╠══════════════════════════════════════╣', 'success');
+            addTerminalLine(`║  Table: ${targetTableNumber.toString().padEnd(28)}║`, 'success');
+            addTerminalLine(`║  Password: ${password.padEnd(25)}║`, 'success');
+            addTerminalLine(`║  Time: ${(elapsed.toFixed(2) + 's').padEnd(29)}║`, 'success');
+            addTerminalLine(`║  Attempts: ${attemptCount.toLocaleString().padEnd(25)}║`, 'success');
+            addTerminalLine('╚══════════════════════════════════════╝', 'success');
+            
+            document.getElementById('attackBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('fetchBtn').disabled = false;
+        }
+
+        function crackFailed() {
+            isRunning = false;
+            const elapsed = (Date.now() - startTime) / 1000;
+            
+            document.getElementById('statusText').textContent = 'FAILED';
+            document.getElementById('statusText').classList.add('failed');
+            document.getElementById('statusText').classList.remove('cracked');
+            document.getElementById('currentAttempt').textContent = '—';
+            document.getElementById('progressFill').style.width = '100%';
+            document.getElementById('progressText').textContent = 'EXHAUSTED';
+            
+            // Show failed result banner (strong password!)
+            document.getElementById('failedWordlistSize').textContent = wordlist.length.toLocaleString();
+            document.getElementById('failedBanner').classList.add('show');
+            document.getElementById('resultBanner').classList.remove('show');
+            
+            addTerminalLine('', '');
+            addTerminalLine('╔══════════════════════════════════════╗', 'secure');
+            addTerminalLine('║     🛡️  ATTACK FAILED! 🛡️            ║', 'secure');
+            addTerminalLine('╠══════════════════════════════════════╣', 'secure');
+            addTerminalLine(`║  Table: ${targetTableNumber.toString().padEnd(28)}║`, 'secure');
+            addTerminalLine(`║  Status: PASSWORD NOT FOUND          ║`, 'secure');
+            addTerminalLine(`║  Tried: ${attemptCount.toLocaleString().padEnd(28)}║`, 'secure');
+            addTerminalLine(`║  Time: ${(elapsed.toFixed(2) + 's').padEnd(29)}║`, 'secure');
+            addTerminalLine('╠══════════════════════════════════════╣', 'secure');
+            addTerminalLine('║  THIS PASSWORD IS STRONG! 💪         ║', 'secure');
+            addTerminalLine('╚══════════════════════════════════════╝', 'secure');
+            
+            document.getElementById('attackBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('fetchBtn').disabled = false;
+        }
+
+        function addTerminalLine(text, className = '') {
+            const terminal = document.getElementById('terminal');
+            const line = document.createElement('div');
+            line.className = 'terminal-line ' + className;
+            line.textContent = text;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+            
+            while (terminal.children.length > 150) {
+                terminal.removeChild(terminal.firstChild);
+            }
+        }
+    </script>
+</body>
+</html>
